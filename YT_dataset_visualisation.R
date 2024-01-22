@@ -6,6 +6,7 @@ library(RColorBrewer)
 library(gghighlight)
 library(ggbreak)
 library(treemapify) 
+library(scales)
 
 #Status as of mid-2023
 GYT <- read.csv("Global_YouTube_Statistics.csv",header=TRUE, sep=',', dec='.',encoding = 'Latin-1')
@@ -33,6 +34,7 @@ top10_ytbers_byViews <- GYT_withoutNaN %>%
 #Na prezce dodać adnotację o PewdiePie - kanał na wykresie jest z Japonii, bo chociaż sam autor Felix Kjellberg pochodzi z Szwecji, 
 #to w 2022 roku przeprowadził się
 #z żoną do Japonii i od teraz jego kanał w oficjalnych danych jest klasyfikowany jako pochodzący z Japonii
+
 
 ggplot(data = top10_ytbers, aes(x = reorder(Youtuber, +subscribers), y=subscribers, fill=Country)) + 
   geom_bar(stat = 'identity', color = 'darkgreen') +
@@ -92,3 +94,31 @@ ggplot(channels_by_country%>%arrange(desc(n)) %>%
 
 
 #wykres ilość wyświetleń do ilości zuploadowanych filmów. Pokazanie, że ilość nie zawsze znaczy jakość
+
+
+####################
+
+GYT_withoutNaN <- GYT_withoutNaN %>% 
+  mutate(category_gr = case_when(
+    category %in% c('Education', 'News & Politics', 'Science & Technology', 'Nonprofits & Activism') ~ 'Education',
+    category == 'nan' ~ 'Unknown',
+    category == 'Gaming' ~ 'Gaming',
+    category == 'Music' ~ 'Music',
+    category == 'Entertainment' ~ 'Entertainment',
+    category %in% c('Comedy', 'Shows', 'Movies', 'Film & Animation', 'Sports', 'Trailers') ~ 'Shows',
+    category %in% c('People & Blogs', 'Travel & Events', 'Howto & Style', 'Pets & Animals', 'Autos & Vehicles') ~ 'Lifestyle')
+    # creating region variable based on country
+    # creating variable whether country is english speaking or not
+    )
+
+table(GYT_withoutNaN$category_gr)
+table(GYT_withoutNaN$Country)
+
+# Wykres rozkładu zmiennych typu zarobki w podziale na category_gr lub region
+
+# Sprawdzić relacje miedzy wyswietlenia vs zarobki a zarobki vs region (unemployement.rate)
+# czy zarobjki bardziej zaleza od wysiwtlen, czy potencjalnego bogactwa ogladajacych
+# dodatkowo wysiwetlenia a populacja 
+
+
+# czas zalozenia kanalu, a wyswietlenia/dochody
