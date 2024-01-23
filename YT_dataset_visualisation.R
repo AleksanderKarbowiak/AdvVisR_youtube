@@ -84,7 +84,7 @@ ggplot(GYT_agg, aes(x = region, y = category_gr)) +
 #z żoną do Japonii i od teraz jego kanał w oficjalnych danych jest klasyfikowany jako pochodzący z Japonii
 
 
-ggplot(data = top10_ytbers, aes(x = reorder(Youtuber, +subscribers), y=, fill=Country)) + 
+ggplot(data = top10_ytbers, aes(x = reorder(Youtuber, +subscribers), y=subscribers, fill=Country)) + 
   geom_bar(stat = 'identity', color = 'darkgreen') +
   scale_fill_brewer(palette="Set1") +
   theme_minimal() +
@@ -153,19 +153,19 @@ ggplot(data = GYT_withoutNaN, aes(x =  subscribers, y = video.views)) +
 
 # Rozkład w podziale na kategorie
 # żaden z regionów się nie wyróżnia
-# dodac 
+# dodac wskaźnik korelacji? 
 ggplot(GYT_withoutNaN %>% filter(!category_gr=='Unknown'), 
-       aes(x=subscribers, y=video.views)) + 
+       aes(x=video.views, y=mean_yearly_earnings)) + 
   geom_point(aes(color = region), size=1, alpha=0.6) +
-  scale_y_continuous(name = "Video Views [billions]",
+  geom_smooth(color=wes_palette("Moonrise2")[1], cex=0.6, alpha=0.3) +
+  scale_x_continuous(name = "Video Views [billions]",
                      breaks = seq(0, 1e+11, by = 1e+10), # use function seq() - operate on original scale values
                      labels = paste0(format(seq(0, 100, by = 10)),"B"),
                      limits = c(0,6e+10)) +
-  scale_x_continuous(name = "Subscribers [millions]",
-                     breaks = seq(0, 1e+8, by = 1e+7), # use function seq() - operate on original scale values
-                     labels = paste0(format(seq(0, 100, by = 10)),"M"),
-                     limits = c(1e+7,7e+7)) + 
-  geom_smooth(color=wes_palette("Moonrise2")[1], cex=0.6, alpha=0.3) +
+  scale_y_continuous(name = "Yearly Earnings [millions]",
+                     breaks = seq(0, 3e+7, by = 5e+6), # use function seq() - operate on original scale values
+                     labels = paste0(format(seq(0, 30, by = 5)),"M"),
+                     limits = c(0,3e+7)) +
   facet_wrap(~ category_gr, ncol=3) 
 
 
