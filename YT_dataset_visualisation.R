@@ -7,7 +7,8 @@ library(gghighlight)
 library(ggbreak)
 library(treemapify) 
 library(scales)
-
+library(knitr)
+library(wesanderson)
 #Status as of mid-2023
 GYT <- read.csv("Global_YouTube_Statistics.csv",header=TRUE, sep=',', dec='.',encoding = 'Latin-1')
 
@@ -98,6 +99,9 @@ ggplot(channels_by_country%>%arrange(desc(n)) %>%
 
 ####################
 
+english_speaking_countries <- c("Australia", "Canada", "United Kingdom", "United States", "India", "Singapore")
+
+
 GYT_withoutNaN <- GYT_withoutNaN %>% 
   mutate(category_gr = case_when(
     category %in% c('Education', 'News & Politics', 'Science & Technology', 'Nonprofits & Activism') ~ 'Education',
@@ -106,15 +110,44 @@ GYT_withoutNaN <- GYT_withoutNaN %>%
     category == 'Music' ~ 'Music',
     category == 'Entertainment' ~ 'Entertainment',
     category %in% c('Comedy', 'Shows', 'Movies', 'Film & Animation', 'Sports', 'Trailers') ~ 'Shows',
-    category %in% c('People & Blogs', 'Travel & Events', 'Howto & Style', 'Pets & Animals', 'Autos & Vehicles') ~ 'Lifestyle')
-    # creating region variable based on country
-    # creating variable whether country is english speaking or not
+    category %in% c('People & Blogs', 'Travel & Events', 'Howto & Style', 'Pets & Animals', 'Autos & Vehicles') ~ 'Lifestyle'),
+  region = case_when(
+    Country %in% c("Afghanistan", "Bangladesh", "China", "India", "Indonesia", "Iraq","United Arab Emirates", "Japan", "Jordan", "Kuwait", "Malaysia", "Pakistan", "Philippines", "Saudi Arabia", "Singapore", "South Korea", "Thailand", "Vietnam") ~ "Asia",
+    Country %in% c("Andorra", "Finland", "France", "Germany", "Italy", "Latvia", "Netherlands", "Russia", "Spain", "Sweden", "Switzerland", "Ukraine", "United Kingdom") ~ "Europe",
+    Country %in% c("Canada", "Cuba", "Mexico", "United States") ~ "North America",
+    Country %in% c("Argentina", "Brazil", "Chile", "Colombia", "Ecuador", "Peru", "Venezuela") ~ "South America",
+    Country %in% c("Australia", "Samoa") ~ "Oceania",
+    Country %in% c("Egypt", "El Salvador", "Morocco") ~ "Africa",
+    TRUE ~ "Other"),
+  english_offical_lang = ifelse(Country %in% english_speaking_countries, TRUE, FALSE),
+  mean_yearly_earnings = (highest_yearly_earnings+lowest_yearly_earnings)/2
     )
 
 table(GYT_withoutNaN$category_gr)
-table(GYT_withoutNaN$Country)
+kable(table(GYT_withoutNaN$Country))
 
-# Wykres rozkładu zmiennych typu zarobki w podziale na category_gr lub region
+# Boxplot, rozkład zarobków na kategorie i english - non-english
+
+ggplot(data = GYT_withoutNaN %>% filter(!category_gr=='Unknown'), 
+       aes(y = mean_yearly_earnings, x = category_gr, color = english_offical_lang)) +
+  geom_boxplot(width = .75) +
+  stat_summary(geom = 'point', shape = 15, fun = mean, size = 2, 
+               position = position_dodge(.75)) +
+  geom_text(data = GYT_withoutNaN %>% filter(!category_gr=='Unknown' & 
+                                               mean_yearly_earnings > 45e+06),
+            aes(label = Youtuber),
+            hjust = 0.5, vjust = 0.5, size = 2.8) + 
+  labs(x='Category') +
+  scale_y_continuous(name = "Yearly Earnings [milions of USD]",
+                     breaks = seq(0, 1e+08, by = 1e+07), # use function seq() - operate on original scale values
+                     labels = paste0(format(seq(0, 100, by = 10)),"M")
+                     ) +
+  scale_color_manual(name = "Official Language",
+                     values = wes_palette(n=2, name="Moonrise2"),
+                     labels = c("TRUE" = "English", "FALSE" = "Non-English")) +
+  theme(legend.position = "bottom") +
+  coord_flip() 
+
 
 # Sprawdzić relacje miedzy wyswietlenia vs zarobki a zarobki vs region (unemployement.rate)
 # czy zarobjki bardziej zaleza od wysiwtlen, czy potencjalnego bogactwa ogladajacych
