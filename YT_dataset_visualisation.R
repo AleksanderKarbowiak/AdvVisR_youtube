@@ -10,6 +10,8 @@ library(scales)
 library(knitr)
 library(wesanderson)
 library(ggpubr)
+library(ggrepel)
+
 #Status as of mid-2023
 GYT <- read.csv("Global_YouTube_Statistics.csv",header=TRUE, sep=',', dec='.',encoding = 'Latin-1')
 
@@ -21,6 +23,7 @@ GYT$Title <- gsub("/","",GYT$Title)
 str(GYT)
 
 table(GYT$category)
+table(GYT$created_year)
 
 GYT_withoutNaN <- subset(GYT, video.views > 50000000)
 
@@ -56,6 +59,42 @@ GYT_withoutNaN <- GYT_withoutNaN %>%
       TRUE ~ Title)
   )
 
+##Created_year_range variable
+#Ranges: (-inf, 2014>; <2015,+inf) Why? Since in 2015 YT launched YouTube premium
+GYT_withoutNaN$CreatedYear_Interval <- ifelse(GYT_withoutNaN$created_year <= 2014, "2005 - 2014", "2015 - 2023")
+table(GYT_withoutNaN$CreatedYear_Interval)
+
+
+#######Mean earnings by category of channel - comparision of old and young ytbers
+
+GYT_MeanEarnings_YearCategory <- GYT_withoutNaN %>% group_by(CreatedYear_Interval,category_gr) %>%
+  summarise_at(vars(mean_yearly_earnings), list(AvgYearlyIncome = mean))
+GYT_MeanEarnings_YearCategory <- na.omit(GYT_MeanEarnings_YearCategory)
+
+pivoted_df<- pivot_wider(GYT_MeanEarnings_YearCategory,names_from=CreatedYear_Interval, values_from = AvgYearlyIncome )
+left_label <- paste(pivoted_df$category_gr, paste0(format(round(pivoted_df$`2005 - 2014`), big.mark=",",scientific=FALSE)," $"),sep=", ")
+right_label <- paste(pivoted_df$category_gr, paste0(format(round(pivoted_df$`2015 - 2023`), big.mark=",", scientific=FALSE)," $"),sep=", ")
+pivoted_df$class <- ifelse((pivoted_df$`2015 - 2023` - pivoted_df$`2005 - 2014`) < 0, "red", "green")
+
+ggplot(pivoted_df) + 
+  geom_segment(aes(x = 1, xend = 2, y = `2005 - 2014`, yend = `2015 - 2023`, col=class), 
+               size = .75, show.legend = F) + 
+  geom_vline(xintercept = 1, linetype = "dashed", size = .3) + 
+  geom_vline(xintercept = 2, linetype = "dashed", size = .3) +
+  scale_color_manual(labels = c("Up", "Down"), 
+                     values = c("green" = "#00ba38", "red" = "#f8766d")) +
+  xlim(.5, 2.5) + 
+  ylim(0, (1.1 * max(pivoted_df$`2005 - 2014`, pivoted_df$`2015 - 2023`))) + 
+  geom_text_repel(label = left_label, y=pivoted_df$`2005 - 2014`, x=rep(1, NROW(pivoted_df)), hjust=1.1, size=3) + 
+  geom_text_repel(label = right_label, y=pivoted_df$`2015 - 2023`, x=rep(2, NROW(pivoted_df)), hjust=-0.1, size=3) + 
+  geom_text(label =" created in 2005 - 2014", x=1, y=1.1 * max(pivoted_df$`2005 - 2014`, pivoted_df$`2015 - 2023`), hjust=1.2, size=5) + 
+  geom_text(label ="created in 2015 - 2023", x=2, y=1.1 * max(pivoted_df$`2005 - 2014`, pivoted_df$`2015 - 2023`), hjust=-0.1, size=5) + 
+  labs(title="Mean 2023 earnings by category of channel - comparision of old and young authors") +
+  theme_void()
+
+
+
+
 table(GYT_withoutNaN$category_gr)
 kable(table(GYT_withoutNaN$Country))
 
@@ -65,6 +104,8 @@ top50_ytbers <- GYT_withoutNaN[1:50,]
 top10_ytbers_byViews <- GYT_withoutNaN %>%                                      
   arrange(desc(video.views)) %>% 
   slice(1:10)
+
+
 
 ## intro - general info
 GYT_agg <- GYT_withoutNaN %>% 
@@ -206,12 +247,10 @@ ggplot(channels_by_country%>%arrange(desc(n)) %>%
 
 #waffle chart, the same as above but with regions
 
-# 6 classes, 234 obs.
-
 # Preparing grid with 100 rectangles:
 df <- expand.grid(y = 1:10, x = 1:10)
 table(GYT_withoutNaN$region)
-# Now we need to rescale 234 obs into 100 (carefully)
+# Now we need to rescale all obs into 100
 categ_table <- round(table(GYT_withoutNaN$region) * ((10*10)/(length(GYT_withoutNaN$region))))
 categ_table['Africa'] <- 1 #to show Africa
 categ_table
