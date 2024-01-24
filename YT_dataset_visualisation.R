@@ -65,34 +65,6 @@ GYT_withoutNaN$CreatedYear_Interval <- ifelse(GYT_withoutNaN$created_year <= 201
 table(GYT_withoutNaN$CreatedYear_Interval)
 
 
-#######Mean earnings by category of channel - comparision of old and young ytbers
-
-GYT_MeanEarnings_YearCategory <- GYT_withoutNaN %>% group_by(CreatedYear_Interval,category_gr) %>%
-  summarise_at(vars(mean_yearly_earnings), list(AvgYearlyIncome = mean))
-GYT_MeanEarnings_YearCategory <- na.omit(GYT_MeanEarnings_YearCategory)
-
-pivoted_df<- pivot_wider(GYT_MeanEarnings_YearCategory,names_from=CreatedYear_Interval, values_from = AvgYearlyIncome )
-left_label <- paste(pivoted_df$category_gr, paste0(format(round(pivoted_df$`2005 - 2014`), big.mark=",",scientific=FALSE)," $"),sep=", ")
-right_label <- paste(pivoted_df$category_gr, paste0(format(round(pivoted_df$`2015 - 2023`), big.mark=",", scientific=FALSE)," $"),sep=", ")
-pivoted_df$class <- ifelse((pivoted_df$`2015 - 2023` - pivoted_df$`2005 - 2014`) < 0, "red", "green")
-
-ggplot(pivoted_df) + 
-  geom_segment(aes(x = 1, xend = 2, y = `2005 - 2014`, yend = `2015 - 2023`, col=class), 
-               size = .75, show.legend = F) + 
-  geom_vline(xintercept = 1, linetype = "dashed", size = .3) + 
-  geom_vline(xintercept = 2, linetype = "dashed", size = .3) +
-  scale_color_manual(labels = c("Up", "Down"), 
-                     values = c("green" = "#00ba38", "red" = "#f8766d")) +
-  xlim(.5, 2.5) + 
-  ylim(0, (1.1 * max(pivoted_df$`2005 - 2014`, pivoted_df$`2015 - 2023`))) + 
-  geom_text_repel(label = left_label, y=pivoted_df$`2005 - 2014`, x=rep(1, NROW(pivoted_df)), hjust=1.1, size=3) + 
-  geom_text_repel(label = right_label, y=pivoted_df$`2015 - 2023`, x=rep(2, NROW(pivoted_df)), hjust=-0.1, size=3) + 
-  geom_text(label =" created in 2005 - 2014", x=1, y=1.1 * max(pivoted_df$`2005 - 2014`, pivoted_df$`2015 - 2023`), hjust=1.2, size=5) + 
-  geom_text(label ="created in 2015 - 2023", x=2, y=1.1 * max(pivoted_df$`2005 - 2014`, pivoted_df$`2015 - 2023`), hjust=-0.1, size=5) + 
-  labs(title="Mean 2023 earnings by category of channel - comparision of old and young authors") +
-  theme_void()
-
-
 
 
 table(GYT_withoutNaN$category_gr)
@@ -112,11 +84,13 @@ GYT_agg <- GYT_withoutNaN %>%
   filter(!category_gr=='Unknown') %>% 
   dplyr::count(region, category_gr)
 
+sum(GYT_agg$n)
+
 ggplot(GYT_agg, aes(x = region, y = category_gr)) + 
   geom_tile(aes(fill = n), color = 'black', show.legend = F) +
   theme_minimal() + 
   geom_text(aes(label = n), size = 5, fontface = 'bold', color = 'white') +
-  labs(title = 'Youtubers in Regions', x='', y='') +
+  labs(title = 'TOP 1000 Youtubers in Regions', x='', y='') +
   scale_fill_gradient(low = wes_palette("Moonrise2")[4], high = wes_palette("Moonrise2")[2])
 
 # Top 10 youtubers by subscribers
@@ -230,7 +204,8 @@ ggplot(GYT_withoutNaN %>% filter(!category_gr=='Unknown'),
 
 #ilość przedstawicieli państw w top 1000 (prawie 1000) youtuba
 
-channels_by_country <- GYT_withoutNaN %>% count(Country)
+#without nan
+channels_by_country <- GYT_withoutNaN %>% subset(Country != "nan")%>% count(Country)
 channels_by_country$Country <- ifelse(channels_by_country$Country=="nan","Other",channels_by_country$Country)
 
 ## Może zrobić taki wykres (albo podobny, ale dla tych danych)
@@ -239,10 +214,11 @@ channels_by_country$Country <- ifelse(channels_by_country$Country=="nan","Other"
 ## wiekszość Azji to Indie, a większość Europy to UK i Hiszpania
 
 ggplot(channels_by_country%>%arrange(desc(n)) %>% 
-         slice(1:15),aes(area=n,fill=Country,label=Country))+ 
-  geom_treemap(layout="squarified")+ 
+         slice(1:20),aes(area=n,fill=Country,label=Country))+ 
+  geom_treemap(layout="squarified", show.legend = FALSE)+ 
   geom_treemap_text(place = "centre",size = 12)+ 
-  labs(title="How many top accounts by country")
+  labs(title="How many top accounts by country") +
+  theme(plot.margin = unit(c(0.2, 0.1, 0.2, .1), units = 'in'), plot.title=element_text(size=15))
 
 
 #waffle chart, the same as above but with regions
@@ -265,7 +241,7 @@ ggplot(df, aes(x = x, y = y, fill = Regions)) +
   scale_fill_brewer(palette = "Set3") +
   labs(title="YT channels regions distribution") + 
   theme_void() +
-  theme(plot.margin = unit(c(0.2, 0.1, 0.2, .1), units = 'in'))
+  theme(plot.margin = unit(c(0.2, 0.1, 0.2, .1), units = 'in'), plot.title=element_text(size=22),legend.text = element_text(size=15),legend.title = element_text(size=15))
 
 
 
@@ -300,9 +276,39 @@ ggplot(data = GYT_withoutNaN %>% filter(!category_gr=='Unknown'),
   coord_flip() 
 
 
+
+
+
+# czas zalozenia kanalu, a dochody
+#######Mean earnings by category of channel - comparision of old and young ytbers
+
+GYT_MeanEarnings_YearCategory <- GYT_withoutNaN %>% group_by(CreatedYear_Interval,category_gr) %>%
+  summarise_at(vars(mean_yearly_earnings), list(AvgYearlyIncome = mean))
+GYT_MeanEarnings_YearCategory <- na.omit(GYT_MeanEarnings_YearCategory)
+
+pivoted_df<- pivot_wider(GYT_MeanEarnings_YearCategory,names_from=CreatedYear_Interval, values_from = AvgYearlyIncome )
+left_label <- paste(pivoted_df$category_gr, paste0(format(round(pivoted_df$`2005 - 2014`), big.mark=",",scientific=FALSE)," $"),sep=", ")
+right_label <- paste(pivoted_df$category_gr, paste0(format(round(pivoted_df$`2015 - 2023`), big.mark=",", scientific=FALSE)," $"),sep=", ")
+pivoted_df$class <- ifelse((pivoted_df$`2015 - 2023` - pivoted_df$`2005 - 2014`) < 0, "red", "green")
+
+ggplot(pivoted_df) + 
+  geom_segment(aes(x = 1, xend = 2, y = `2005 - 2014`, yend = `2015 - 2023`, col=class), 
+               size = .75, show.legend = F) + 
+  geom_vline(xintercept = 1, linetype = "dashed", size = .3) + 
+  geom_vline(xintercept = 2, linetype = "dashed", size = .3) +
+  scale_color_manual(labels = c("Up", "Down"), 
+                     values = c("green" = "#00ba38", "red" = "#f8766d")) +
+  xlim(.5, 2.5) + 
+  ylim(0, (1.1 * max(pivoted_df$`2005 - 2014`, pivoted_df$`2015 - 2023`))) + 
+  geom_text_repel(label = left_label, y=pivoted_df$`2005 - 2014`, x=rep(1, NROW(pivoted_df)), hjust=1.1, size=3) + 
+  geom_text_repel(label = right_label, y=pivoted_df$`2015 - 2023`, x=rep(2, NROW(pivoted_df)), hjust=-0.1, size=3) + 
+  geom_text(label =" created in 2005 - 2014", x=1, y=1.1 * max(pivoted_df$`2005 - 2014`, pivoted_df$`2015 - 2023`), hjust=1.2, size=5) + 
+  geom_text(label ="created in 2015 - 2023", x=2, y=1.1 * max(pivoted_df$`2005 - 2014`, pivoted_df$`2015 - 2023`), hjust=-0.1, size=5) + 
+  labs(title="Mean 2023 earnings by category of channel - comparision of old and young authors", hjust=0.5) +
+  theme_void()
+
+
+
 # Sprawdzić relacje miedzy wyswietlenia vs zarobki a zarobki vs region (unemployement.rate)
 # czy zarobjki bardziej zaleza od wysiwtlen, czy potencjalnego bogactwa ogladajacych
 # dodatkowo wysiwetlenia a populacja 
-
-
-# czas zalozenia kanalu, a wyswietlenia/dochody
