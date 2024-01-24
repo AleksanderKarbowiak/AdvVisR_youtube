@@ -110,7 +110,6 @@ ggplot(data = top10_ytbers, aes(x = reorder(Youtuber, +subscribers), y=subscribe
 
 
 
-
 top10_ytbers <- top10_ytbers %>% 
   mutate(region = as.factor(region),
          name = rownames(.))
@@ -138,6 +137,21 @@ ggparcoord(top10_ytbers, columns=c(3,4,7,32),
   scale_size_identity() +
   theme_minimal() +
   theme(panel.grid.major.x = element_line(colour="grey70"))
+
+
+
+##Radar of features for top 10 youtubers. Different approach as graph above
+
+devtools::install_github("ricardo-bion/ggradar")
+library(ggradar)
+
+ytTop10_radar <- subset(top10_ytbers_byViews, select=c("Youtuber","lowest_yearly_earnings","highest_yearly_earnings","mean_yearly_earnings","uploads","video.views","subscribers"))
+ytTop10_radar <- ytTop10_radar %>% mutate_at(vars(-Youtuber), scales::rescale)
+
+ggradar(ytTop10_radar) 
+
+
+
 
 #wykres ilość subów do ilości wyświetleń. Pokazanie, nie zawsze najwięcej obserwujących = najwięcej wyświetleń. 
 
