@@ -95,23 +95,6 @@ ggplot(data = top10_ytbers, aes(x = reorder(Youtuber, +subscribers), y=subscribe
         fill="Country") +
   scale_y_continuous(labels = unit_format(unit = "M", scale = 1e-6))
   
-
-top10_ytbers <- top10_ytbers %>% 
-  mutate(region = as.factor(region),
-         name = rownames(.))
-
-ggdotchart(top10_ytbers, x = "Youtuber", y = "subscribers", color = "region",                                
-           palette = wes_palette(n=3, "Moonrise2"), 
-           sorting = "descending",                       
-           rotate = TRUE,                                
-           dot.size = 2,                                
-           y.text.col = TRUE) + 
-  labs(y="Subscriber count",
-       color="Region") +
-  scale_y_continuous(labels = unit_format(unit = "M", scale = 1e-6)) +
-  theme_cleveland()  
-
-
 #Top 10 yt channels by channel type
 
 ggplot(data = top10_ytbers, aes(x = reorder(Youtuber, +subscribers), y=subscribers, fill=category)) + 
@@ -124,6 +107,27 @@ ggplot(data = top10_ytbers, aes(x = reorder(Youtuber, +subscribers), y=subscribe
        y="Subscriber count",
        fill="Category") +
   scale_y_continuous(labels = unit_format(unit = "M", scale = 1e-6))
+
+
+
+
+top10_ytbers <- top10_ytbers %>% 
+  mutate(region = as.factor(region),
+         name = rownames(.))
+
+ggdotchart(top10_ytbers, x = "Youtuber", y = "subscribers", color = "region",                                
+           palette = wes_palette(n=3, "BottleRocket2"), 
+           sorting = "descending",                       
+           rotate = TRUE,                                
+           dot.size = 2,                                
+           y.text.col = TRUE) + 
+  labs(y="Subscriber count",
+       color="Region") +
+  scale_y_continuous(labels = unit_format(unit = "M", scale = 1e-6)) +
+  theme_cleveland()  
+
+
+
 
 # Does high number of subsribers mean that rest of metrics are also high?
 library(GGally)
@@ -186,6 +190,36 @@ ggplot(channels_by_country%>%arrange(desc(n)) %>%
   labs(title="How many top accounts by country")
 
 
+#waffle chart, the same as above but with regions
+
+# 6 classes, 234 obs.
+
+# Preparing grid with 100 rectangles:
+df <- expand.grid(y = 1:10, x = 1:10)
+table(GYT_withoutNaN$region)
+# Now we need to rescale 234 obs into 100 (carefully)
+categ_table <- round(table(GYT_withoutNaN$region) * ((10*10)/(length(GYT_withoutNaN$region))))
+categ_table['Africa'] <- 1 #to show Africa
+categ_table
+sum(categ_table)
+
+# Now we know, how many rectangles each region occupies:
+df$Regions <- factor(rep(names(categ_table), categ_table))  
+ggplot(df, aes(x = x, y = y, fill = Regions)) + 
+  geom_tile(color = "black", size = 0.5) +
+  scale_x_continuous(expand = c(0, 0)) +
+  scale_y_continuous(expand = c(0, 0), trans = 'reverse') +
+  scale_fill_brewer(palette = "Set3") +
+  labs(title="YT channels regions distribution") + 
+  theme_void() +
+  theme(plot.margin = unit(c(0.2, 0.1, 0.2, .1), units = 'in'))
+
+
+
+
+
+
+
 #wykres ilość wyświetleń do ilości zuploadowanych filmów. Pokazanie, że ilość nie zawsze znaczy jakość
 
 
@@ -198,7 +232,7 @@ ggplot(data = GYT_withoutNaN %>% filter(!category_gr=='Unknown'),
   stat_summary(geom = 'point', shape = 15, fun = mean, size = 2, 
                position = position_dodge(.75)) +
   geom_text(data = GYT_withoutNaN %>% filter(!category_gr=='Unknown' & 
-                                               mean_yearly_earnings > 45e+06),
+                                               mean_yearly_earnings > 45e+06), 
             aes(label = Youtuber),
             hjust = 0.5, vjust = 0.5, size = 2.8) + 
   labs(x='Category') +
