@@ -99,20 +99,28 @@ ggplot(GYT_agg, aes(x = region, y = category_gr)) +
 #z żoną do Japonii i od teraz jego kanał w oficjalnych danych jest klasyfikowany jako pochodzący z Japonii
 
 
-ggplot(data = top10_ytbers, aes(x = reorder(Youtuber, +subscribers), y=subscribers, fill=Country)) + 
-  geom_bar(stat = 'identity', color = 'darkgreen') +
-  scale_fill_brewer(palette="Set1") +
+ggplot(data = top10_ytbers, aes(x = reorder(Youtuber, +subscribers), y=subscribers, fill=category_gr)) + 
+  geom_bar(stat = 'identity', color = NA,width = 0.7, position = position_dodge(width = 0.8)) +
   theme_minimal() +
-   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  theme(axis.text.x = element_text(angle = 0, vjust = 0.5, hjust=1)) +
   labs(title = 'Top 10 biggest Youtube channels in 2023',
       x="Youtube channel",
        y="Subscriber count",
-        fill="Country") +
-  scale_y_continuous(labels = unit_format(unit = "M", scale = 1e-6))
+        fill="Category") +
+  scale_y_continuous(labels = unit_format(unit = "M", scale = 1e-6))+
+  scale_fill_manual(values = palette("Set1")) +
+  coord_flip() +
+  geom_text(
+    aes(label = Country),
+    position = position_stack(vjust = 0.5),
+    size = 4,
+    fontface = "bold",
+    color = "black" 
+  )
   
 #Top 10 yt channels by channel type
 
-ggplot(data = top10_ytbers, aes(x = reorder(Youtuber, +subscribers), y=subscribers, fill=category)) + 
+ggplot(data = top10_ytbers, aes(x = reorder(Youtuber, +subscribers), y=subscribers, fill=category_gr)) + 
   geom_bar(stat = 'identity', color = 'darkgreen') +
   scale_fill_brewer(palette="Set1") +
   theme_minimal() +
@@ -148,10 +156,13 @@ library(GGally)
 
 ggparcoord(top10_ytbers, columns=c(3,4,7,32), 
            groupColumn = "Youtuber",
-           mapping = aes(size = 1)) +
+           mapping = aes(size = 1.3)) +
   scale_size_identity() +
   theme_minimal() +
-  theme(panel.grid.major.x = element_line(colour="grey70"))
+  theme(panel.grid.major.x = element_line(colour="grey70"),
+        axis.text = element_text(size = 10),  # Adjust axis label size
+        axis.title = element_text(size = 10) ) +
+  labs(x='',y='')
 
 
 
@@ -199,7 +210,8 @@ ggplot(GYT_withoutNaN %>% filter(!category_gr=='Unknown'),
                      breaks = seq(0, 3e+7, by = 5e+6), # use function seq() - operate on original scale values
                      labels = paste0(format(seq(0, 30, by = 5)),"M"),
                      limits = c(0,3e+7)) +
-  facet_wrap(~ category_gr, ncol=3) 
+  facet_wrap(~ category_gr, ncol=3) +
+  theme_minimal()
 
 
 #ilość przedstawicieli państw w top 1000 (prawie 1000) youtuba
@@ -218,6 +230,12 @@ ggplot(channels_by_country%>%arrange(desc(n)) %>%
   geom_treemap(layout="squarified", show.legend = FALSE)+ 
   geom_treemap_text(place = "centre",size = 12)+ 
   labs(title="How many top accounts by country") +
+  scale_fill_manual(values = c(
+    "#1f78b4", "#33a02c", "#e31a1c", "#ff7f00", "#6a3d9a",
+    "#a6cee3", "#b2df8a", "#fb9a99", "#fdbf6f", "#cab2d6",
+    "#ffff99", "#b15928", "#8dd3c7", "#fb8072", "#80b1d3",
+    "#bebada", "#ffed6f", "#bc80bd", "#ccebc5", "#ffed6f"
+  )) + 
   theme(plot.margin = unit(c(0.2, 0.1, 0.2, .1), units = 'in'), plot.title=element_text(size=15))
 
 
@@ -234,7 +252,7 @@ sum(categ_table)
 
 # Now we know, how many rectangles each region occupies:
 df$Regions <- factor(rep(names(categ_table), categ_table))  
-ggplot(df, aes(x = x, y = y, fill = Regions)) + 
+ggplot(df, aes(x = x, y = y, fill = Regions, color = NA)) + 
   geom_tile(color = "black", size = 0.5) +
   scale_x_continuous(expand = c(0, 0)) +
   scale_y_continuous(expand = c(0, 0), trans = 'reverse') +
@@ -262,8 +280,8 @@ ggplot(data = GYT_withoutNaN %>% filter(!category_gr=='Unknown'),
                position = position_dodge(.75)) +
   geom_text(data = GYT_withoutNaN %>% filter(!category_gr=='Unknown' & 
                                                mean_yearly_earnings > 45e+06), 
-            aes(label = Youtuber),
-            hjust = 0.5, vjust = 0.5, size = 2.8) + 
+            aes(label = Youtuber,fontface = "bold"),
+            hjust = 0.7, vjust = 0.5, size = 3.5) + 
   labs(x='Category') +
   scale_y_continuous(name = "Yearly Earnings [milions of USD]",
                      breaks = seq(0, 1e+08, by = 1e+07), # use function seq() - operate on original scale values
@@ -272,6 +290,7 @@ ggplot(data = GYT_withoutNaN %>% filter(!category_gr=='Unknown'),
   scale_color_manual(name = "Official Language",
                      values = wes_palette(n=2, name="Moonrise2"),
                      labels = c("TRUE" = "English", "FALSE" = "Non-English")) +
+  theme_minimal() +
   theme(legend.position = "bottom") +
   coord_flip() 
 
@@ -287,21 +306,23 @@ GYT_MeanEarnings_YearCategory <- GYT_withoutNaN %>% group_by(CreatedYear_Interva
 GYT_MeanEarnings_YearCategory <- na.omit(GYT_MeanEarnings_YearCategory)
 
 pivoted_df<- pivot_wider(GYT_MeanEarnings_YearCategory,names_from=CreatedYear_Interval, values_from = AvgYearlyIncome )
+pivoted_df <- pivoted_df %>% filter(!category_gr =='Unknown')
 left_label <- paste(pivoted_df$category_gr, paste0(format(round(pivoted_df$`2005 - 2014`), big.mark=",",scientific=FALSE)," $"),sep=", ")
 right_label <- paste(pivoted_df$category_gr, paste0(format(round(pivoted_df$`2015 - 2023`), big.mark=",", scientific=FALSE)," $"),sep=", ")
 pivoted_df$class <- ifelse((pivoted_df$`2015 - 2023` - pivoted_df$`2005 - 2014`) < 0, "red", "green")
 
+
 ggplot(pivoted_df) + 
   geom_segment(aes(x = 1, xend = 2, y = `2005 - 2014`, yend = `2015 - 2023`, col=class), 
-               size = .75, show.legend = F) + 
-  geom_vline(xintercept = 1, linetype = "dashed", size = .3) + 
-  geom_vline(xintercept = 2, linetype = "dashed", size = .3) +
+               size = .9, show.legend = F) + 
+  geom_vline(xintercept = 1, linetype = "dashed", size = .5) + 
+  geom_vline(xintercept = 2, linetype = "dashed", size = .5) +
   scale_color_manual(labels = c("Up", "Down"), 
                      values = c("green" = "#00ba38", "red" = "#f8766d")) +
   xlim(.5, 2.5) + 
   ylim(0, (1.1 * max(pivoted_df$`2005 - 2014`, pivoted_df$`2015 - 2023`))) + 
-  geom_text_repel(label = left_label, y=pivoted_df$`2005 - 2014`, x=rep(1, NROW(pivoted_df)), hjust=1.1, size=3) + 
-  geom_text_repel(label = right_label, y=pivoted_df$`2015 - 2023`, x=rep(2, NROW(pivoted_df)), hjust=-0.1, size=3) + 
+  geom_text_repel(label = left_label, y=pivoted_df$`2005 - 2014`, x=rep(1, NROW(pivoted_df)), hjust=1.1, size=4) + 
+  geom_text_repel(label = right_label, y=pivoted_df$`2015 - 2023`, x=rep(2, NROW(pivoted_df)), hjust=-0.1, size=4) + 
   geom_text(label =" created in 2005 - 2014", x=1, y=1.1 * max(pivoted_df$`2005 - 2014`, pivoted_df$`2015 - 2023`), hjust=1.2, size=5) + 
   geom_text(label ="created in 2015 - 2023", x=2, y=1.1 * max(pivoted_df$`2005 - 2014`, pivoted_df$`2015 - 2023`), hjust=-0.1, size=5) + 
   labs(title="Mean 2023 earnings by category of channel - comparision of old and young authors", hjust=0.5) +
